@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for entry in contents.lines() {
         let (row, column) = parse_boarding_pass(entry).context(String::from(entry))?;
 
-        let seat_id = (row * 8) + column;
+        let seat_id = get_seat_id(row, column);
         seat_ids.push(seat_id);
     }
 
@@ -33,4 +33,8 @@ fn parse_boarding_pass(entry: &str) -> Result<(u32, u32), ParseIntError> {
     let column = u32::from_str_radix(&column_encoding, 2)?;
 
     Ok((row, column))
+}
+
+fn get_seat_id(row: u32, column: u32) -> u32 {
+    (row * 8) + column
 }
