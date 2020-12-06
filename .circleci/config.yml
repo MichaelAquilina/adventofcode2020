@@ -14,7 +14,26 @@ jobs:
           command: >
             for day in day*; do
               cd "$day"
+              echo "Checking $day"
               cargo fmt -- --check
+              cd ..
+            done
+
+  clippy:
+    docker:
+      - image: "circleci/rust:1.48"
+    steps:
+      - checkout
+      - run:
+          name: install clippy
+          command: rustup component add clippy
+      - run:
+          name: run clippy
+          command: >
+            for day in day*; do
+              cd "$day"
+              echo "Checking $day"
+              cargo clippy
               cd ..
             done
 
@@ -38,4 +57,5 @@ workflows:
   test_solutions:
     jobs:
       - rustfmt
+      - clippy
       - test
