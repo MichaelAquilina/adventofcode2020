@@ -4,7 +4,7 @@ pub struct PolicyEntry {
     min_frequency: usize,
     max_frequency: usize,
     character: char,
-    pub password: String,
+    password: String,
 }
 
 impl PolicyEntry {
