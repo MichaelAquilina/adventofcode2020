@@ -76,7 +76,7 @@ fn parse_bags(content: &str) -> Result<BagMap, Box<dyn Error>> {
             for child in children.split(", ") {
                 // pretty hacky, could probably improve this string replace!
                 let child = child.replace(" bags", "").replace(" bag", "");
-                let mut tokens = child.split(" ");
+                let mut tokens = child.split(' ');
 
                 let number: usize = tokens.next().ok_or("Missing child number")?.parse()?;
                 let remaining_tokens = tokens.collect::<Vec<&str>>();
@@ -86,11 +86,15 @@ fn parse_bags(content: &str) -> Result<BagMap, Box<dyn Error>> {
             }
 
             for (child_color, _) in &child_colors {
-                let child_bag = bags.entry(String::from(child_color)).or_insert(Bag::new());
+                let child_bag = bags
+                    .entry(String::from(child_color))
+                    .or_insert_with(Bag::new);
                 child_bag.parents.push(String::from(parent_color));
             }
 
-            let parent_bag = bags.entry(String::from(parent_color)).or_insert(Bag::new());
+            let parent_bag = bags
+                .entry(String::from(parent_color))
+                .or_insert_with(Bag::new);
             parent_bag.children = child_colors;
         }
     }
