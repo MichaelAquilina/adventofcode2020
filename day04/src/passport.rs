@@ -24,7 +24,7 @@ impl std::str::FromStr for Color {
             "grn" => Self::Green,
             "hzl" => Self::Hazel,
             "oth" => Self::Other,
-            _ => return Err(String::from(format!("Unknown color {}", value))),
+            _ => return Err(format!("Unknown color {}", value)),
         })
     }
 }
@@ -55,21 +55,21 @@ impl std::str::FromStr for Measurement {
                 .replace("cm", "")
                 .parse()
                 .context("measurement in cm")?;
-            return Ok(Self {
+            Ok(Self {
                 unit: UnitType::Centimeters,
                 value,
-            });
+            })
         } else if value.ends_with("in") {
             let value = value
                 .replace("in", "")
                 .parse()
                 .context("measurement in inches")?;
-            return Ok(Self {
+            Ok(Self {
                 unit: UnitType::Inches,
                 value,
-            });
+            })
         } else {
-            return Err(Box::new(UnitTypeError::UnknownType));
+            Err(Box::new(UnitTypeError::UnknownType))
         }
     }
 }
@@ -95,7 +95,7 @@ impl std::str::FromStr for Passport {
     fn from_str(entry: &str) -> Result<Self, Self::Err> {
         let mut fields: HashMap<&str, String> = HashMap::new();
         for field in entry.split_whitespace() {
-            let mut tokens = field.split(":");
+            let mut tokens = field.split(':');
 
             let key = tokens.next().ok_or("Missing Key")?;
             let value = String::from(tokens.next().ok_or("Missing value")?);
@@ -123,70 +123,52 @@ impl std::str::FromStr for Passport {
         let ecl: Color = fields.get("ecl").ok_or("Missing eye color")?.parse()?;
         let pid = String::from(fields.get("pid").ok_or("Missing passport id")?);
 
+        let hcl_regex = Regex::new(r"^#[a-f0-9]{6}$").unwrap();
+        let pid_regex = Regex::new(r"^[0-9]{9}$").unwrap();
+
         if byr < 1920 || byr > 2002 {
-            return Err(Box::new(PassportError::InvalidValue(format!(
+            Err(Box::new(PassportError::InvalidValue(format!(
                 "byr:{}",
                 byr
-            ))));
-        }
-
-        if iyr < 2010 || iyr > 2020 {
-            return Err(Box::new(PassportError::InvalidValue(format!(
+            ))))
+        } else if iyr < 2010 || iyr > 2020 {
+            Err(Box::new(PassportError::InvalidValue(format!(
                 "iyr:{}",
                 iyr
-            ))));
-        }
-
-        if eyr < 2020 || eyr > 2030 {
-            return Err(Box::new(PassportError::InvalidValue(format!(
+            ))))
+        } else if eyr < 2020 || eyr > 2030 {
+            Err(Box::new(PassportError::InvalidValue(format!(
                 "eyr:{}",
                 eyr
-            ))));
-        }
-
-        if hgt.unit == UnitType::Centimeters {
-            if hgt.value < 150 || hgt.value > 193 {
-                return Err(Box::new(PassportError::InvalidValue(format!(
-                    "hgt:{:?}",
-                    hgt
-                ))));
-            }
-        }
-
-        if hgt.unit == UnitType::Inches {
-            if hgt.value < 59 || hgt.value > 76 {
-                return Err(Box::new(PassportError::InvalidValue(format!(
-                    "hgt:{:?}",
-                    hgt
-                ))));
-            }
-        }
-
-        let re = Regex::new(r"^#[a-f0-9]{6}$").unwrap();
-        if !re.is_match(&hcl) {
-            return Err(Box::new(PassportError::InvalidValue(format!(
+            ))))
+        } else if (hgt.unit == UnitType::Centimeters && (hgt.value < 150 || hgt.value > 193))
+            || (hgt.unit == UnitType::Inches && (hgt.value < 59 || hgt.value > 76))
+        {
+            Err(Box::new(PassportError::InvalidValue(format!(
+                "hgt:{:?}",
+                hgt
+            ))))
+        } else if !hcl_regex.is_match(&hcl) {
+            Err(Box::new(PassportError::InvalidValue(format!(
                 "hcl:{}",
                 hcl
-            ))));
-        }
-
-        let re = Regex::new(r"^[0-9]{9}$").unwrap();
-        if !re.is_match(&pid) {
-            return Err(Box::new(PassportError::InvalidValue(format!(
+            ))))
+        } else if !pid_regex.is_match(&pid) {
+            Err(Box::new(PassportError::InvalidValue(format!(
                 "pid:{}",
                 pid
-            ))));
+            ))))
+        } else {
+            Ok(Passport {
+                byr,
+                iyr,
+                eyr,
+                hgt,
+                hcl,
+                ecl,
+                pid,
+            })
         }
-
-        Ok(Passport {
-            byr,
-            iyr,
-            eyr,
-            hgt,
-            hcl,
-            ecl,
-            pid,
-        })
     }
 }
 
