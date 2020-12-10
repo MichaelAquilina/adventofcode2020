@@ -3,7 +3,7 @@ mod instruction;
 use std::error::Error;
 use std::io::Read;
 
-use instruction::{run_instructions, Instruction};
+use instruction::{fix_instructions, run_instructions, Instruction};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut contents = String::new();
@@ -17,7 +17,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let result = run_instructions(&instructions)?;
-    println!("Part 1: {}", result);
+    println!("Part 1: {}", result.accumulator);
+
+    let result = fix_instructions(&instructions)?;
+    println!("Part 2: {}", result.accumulator);
 
     Ok(())
 }

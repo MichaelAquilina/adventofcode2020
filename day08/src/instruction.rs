@@ -9,28 +9,45 @@ pub enum InstructionError {
     InvalidInstructionLocation(i32),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Operation {
     Acc,
     Jmp,
     Nop,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Instruction {
-    operation: Operation,
-    argument: i32,
+    pub operation: Operation,
+    pub argument: i32,
 }
 
-pub fn run_instructions(instructions: &[Instruction]) -> Result<i32, InstructionError> {
+#[derive(Debug, PartialEq)]
+pub enum TerminationReason {
+    InfiniteLoop,
+    ReachedEnd,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct InstructionResult {
+    pub accumulator: i32,
+    pub termination_reason: TerminationReason,
+}
+
+pub fn run_instructions(
+    instructions: &[Instruction],
+) -> Result<InstructionResult, InstructionError> {
     let mut accumulator = 0;
     let mut index = 0;
 
     let mut visited: HashSet<usize> = HashSet::new();
 
-    loop {
+    while index < instructions.len() {
         if visited.contains(&index) {
-            break;
+            return Ok(InstructionResult {
+                accumulator,
+                termination_reason: TerminationReason::InfiniteLoop,
+            });
         }
 
         let instruction = &instructions[index];
@@ -52,7 +69,38 @@ pub fn run_instructions(instructions: &[Instruction]) -> Result<i32, Instruction
         index += 1;
     }
 
-    Ok(accumulator)
+    Ok(InstructionResult {
+        accumulator,
+        termination_reason: TerminationReason::ReachedEnd,
+    })
+}
+
+pub fn fix_instructions(instructions: &[Instruction]) -> Result<InstructionResult, Box<dyn Error>> {
+    let mut instructions_fix = instructions.to_vec();
+
+    let mut index = 0;
+    while index < instructions.len() {
+        match instructions[index].operation {
+            Operation::Acc => {
+                index += 1;
+                continue;
+            }
+            Operation::Jmp => instructions_fix[index].operation = Operation::Nop,
+            Operation::Nop => instructions_fix[index].operation = Operation::Jmp,
+        };
+
+        let result = run_instructions(&instructions_fix)?;
+
+        if result.termination_reason == TerminationReason::ReachedEnd {
+            return Ok(result);
+        }
+
+        // restore operation to original value sinc it did not work
+        instructions_fix[index].operation = instructions[index].operation;
+        index += 1;
+    }
+
+    panic!("Oh oh");
 }
 
 impl std::str::FromStr for Operation {
@@ -72,7 +120,7 @@ impl std::str::FromStr for Instruction {
     type Err = Box<dyn Error>;
 
     fn from_str(content: &str) -> Result<Instruction, Self::Err> {
-        let mut tokens = content.split(" ");
+        let mut tokens = content.split(' ');
         let operation = tokens.next().ok_or("Missing operation")?.parse()?;
         let argument = tokens.next().ok_or("Missing argument")?.parse()?;
         Ok(Instruction {
@@ -101,7 +149,39 @@ mod test_instruction {
         ];
 
         let result = run_instructions(&instructions)?;
-        assert_eq!(result, 5);
+        assert_eq!(
+            result,
+            InstructionResult {
+                accumulator: 5,
+                termination_reason: TerminationReason::InfiniteLoop
+            }
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_provided_example_2() -> Result<(), Box<dyn Error>> {
+        let instructions: Vec<Instruction> = vec![
+            "nop +0".parse()?,
+            "acc +1".parse()?,
+            "jmp +4".parse()?,
+            "acc +3".parse()?,
+            "jmp -3".parse()?,
+            "acc -99".parse()?,
+            "acc +1".parse()?,
+            "jmp -4".parse()?,
+            "acc +6".parse()?,
+        ];
+
+        let result = fix_instructions(&instructions)?;
+        assert_eq!(
+            result,
+            InstructionResult {
+                accumulator: 8,
+                termination_reason: TerminationReason::ReachedEnd,
+            }
+        );
 
         Ok(())
     }
