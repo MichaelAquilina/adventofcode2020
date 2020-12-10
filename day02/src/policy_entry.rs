@@ -28,24 +28,32 @@ impl std::str::FromStr for PolicyEntry {
     fn from_str(line: &str) -> Result<Self, Self::Err> {
         let mut tokens = line.split(": ");
 
-        let policy = tokens.next().ok_or(String::from("Missing policy"))?;
-        let password = String::from(tokens.next().ok_or(String::from("Missing password"))?);
+        let policy = tokens
+            .next()
+            .ok_or_else(|| String::from("Missing policy"))?;
+        let password = String::from(
+            tokens
+                .next()
+                .ok_or_else(|| String::from("Missing password"))?,
+        );
 
-        let mut tokens = policy.split(" ");
-        let frequency = tokens.next().ok_or(String::from("Missing frequency"))?;
+        let mut tokens = policy.split(' ');
+        let frequency = tokens
+            .next()
+            .ok_or_else(|| String::from("Missing frequency"))?;
         let character: char = tokens
             .next()
-            .ok_or(String::from("Missing character"))?
+            .ok_or_else(|| String::from("Missing character"))?
             .parse()?;
 
-        let mut tokens = frequency.split("-");
+        let mut tokens = frequency.split('-');
         let min_frequency: usize = tokens
             .next()
-            .ok_or(String::from("Missing min frequency"))?
+            .ok_or_else(|| String::from("Missing min frequency"))?
             .parse()?;
         let max_frequency: usize = tokens
             .next()
-            .ok_or(String::from("Missing max frequency"))?
+            .ok_or_else(|| String::from("Missing max frequency"))?
             .parse()?;
 
         Ok(PolicyEntry {
