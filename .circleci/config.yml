@@ -33,7 +33,7 @@ jobs:
             for day in day*; do
               cd "$day"
               echo "Checking $day"
-              cargo clippy
+              cargo clippy -- -Dwarnings
               cd ..
             done
 
